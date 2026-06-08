@@ -1,0 +1,43 @@
+name: trip_genie
+description: "A new Flutter project."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Firebase
+  firebase_core: 4.10.0
+  firebase_auth: 6.5.2
+
+  # State Management
+  flutter_riverpod: 3.3.1
+  riverpod_annotation: 4.0.2
+
+  # Navigation
+  go_router: 17.3.0
+
+  # HTTP Client
+  dio: 5.9.2
+
+  # Local Database
+  sqflite: ^2.4.2+1
+  path: 1.9.1
+
+  #Environment Variable
+  flutter_dotenv: 6.0.1
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
