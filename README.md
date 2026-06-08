@@ -1,4 +1,4 @@
-#Trip Genie
+## Trip Genie
 > AI-powered travel itinerary generator untuk traveler yang sibuk.
 
 Trip Genie adalah aplikasi mobile berbasis Flutter yang membantu pengguna membuat rencana perjalanan (itinerary) secara otomatis menggunakan kecerdasan buatan. Pengguna cukup memasukkan destinasi, rentang waktu, dan budget — Trip Genie akan menghasilkan itinerary lengkap dalam hitungan detik.
@@ -95,16 +95,6 @@ Pilih project Firebase yang baru dibuat. Perintah ini akan otomatis membuat:
 - `lib/firebase_options.dart`
 - `android/app/google-services.json`
 - `ios/Runner/GoogleService-Info.plist`
-
-*4e. Tambahkan SHA-1 untuk Google Sign-In (Android)*
-```bash
-cd android
-./gradlew signingReport
-```
-Copy nilai **SHA-1** yang muncul, lalu:
-1. Firebase Console → **Project Settings** → **Your Apps** → pilih app Android
-2. Klik **Add Fingerprint** → paste SHA-1 → Save
-3. Download ulang `google-services.json` → replace file di `android/app/`
 
 **5. Jalankan Aplikasi**
 ```bash
