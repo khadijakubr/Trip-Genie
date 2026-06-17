@@ -1,6 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trip_genie/shared/constants/app_preferences.dart';
 import 'package:trip_genie/view/pages/onboarding_page.dart';
 import 'package:trip_genie/view/pages/auth_page.dart';
 import 'package:trip_genie/view/pages/home_page.dart';
@@ -21,16 +21,13 @@ class AppRoutes {
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    // Halaman pertama yang dibuka
+    // First page opened
     initialLocation: AppRoutes.onboarding,
     
-    // redirect dipanggil setiap kali ada navigasi
-    // Di sini kita tentukan logika "siapa boleh akses halaman mana"
+    // redirect called every time route changes
     redirect: (context, state) async {
-      final prefs = await SharedPreferences.getInstance();
-      final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
+      final hasSeenOnboarding = await AppPreferences.getHasSeenOnboarding();
       
-      // Jika belum pernah lihat onboarding, arahkan ke onboarding
       if (!hasSeenOnboarding) return AppRoutes.onboarding;
       
       // Jika sudah lihat onboarding tapi belum login, arahkan ke auth
