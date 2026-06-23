@@ -56,6 +56,13 @@ class AppTheme {
     fontFamily: 'Inter',
   );
 
+  static TextStyle errorTextStyle = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.normal,
+    color: errorColor,
+    fontFamily: 'Inter',
+  );
+
   // Card Decoration
   static BoxDecoration cardDecoration = BoxDecoration(
     color: surfaceColor,
@@ -125,6 +132,35 @@ class AppTheme {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
+    ),
+
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: backgroundColor,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: secondaryColor, width: 1.5),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: secondaryColor, width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: primaryColor, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: errorColor, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: errorColor, width: 2),
+      ),
+      labelStyle: bodySmall,
+      hintStyle: bodySmall.copyWith(color: textSecondary),
+      prefixIconColor: primaryColor,
     ),
   );
 }
