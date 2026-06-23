@@ -32,6 +32,115 @@ Lapisan abstraksi antara ViewModel dan sumber data. Repository menentukan dari m
 
 File ini masih belum final dan nantinya bisa berubah - ubah sesuai perkembangan dan kebutuhan app nya
 
+---
+
+## 🧪 Testing
+
+### Filosofi Testing
+
+Project ini menerapkan unit testing untuk logika autentikasi menggunakan pola **Arrange-Act-Assert (AAA)**:
+- **Arrange**: Siapkan data input untuk test
+- **Act**: Jalankan fungsi yang diuji
+- **Assert**: Verifikasi hasil sesuai ekspektasi
+
+### Fungsi yang Diuji
+
+Dipilih fungsi-fungsi **murni** (pure functions) yang:
+1. Tidak memiliki efek samping atau ketergantungan eksternal (Firebase, database, widget)
+2. Kritis untuk pengalaman pengguna (kesalahan validasi membuat user frustasi)
+3. Mudah diisolasi dan diuji tanpa setup kompleks
+
+### Test Case yang Tersedia
+
+#### 1. **Validasi Email** (5 test cases)
+Menguji fungsi `validateEmail()` yang memvalidasi format email pengguna.
+
+**Mengapa diuji?**
+- Email adalah gerbang pertama sebelum permintaan ke Firebase
+- Menangkap input tidak valid lebih awal menghemat panggilan API
+- Mencegah user frustasi dengan pesan error Firebase yang membingungkan
+
+**Test yang dilakukan:**
+- ✅ Email valid dengan format benar mengembalikan `null` (valid)
+- ❌ Email kosong menampilkan pesan error spesifik
+- ❌ Email tanpa simbol `@` ditolak
+- ❌ Email dengan `@` tapi tanpa domain ditolak (edge case)
+- ❌ Email `null` (field belum diisi) ditangani dengan error
+
+#### 2. **Validasi Password** (5 test cases)
+Menguji fungsi `validatePassword()` yang memastikan password memenuhi persyaratan minimum.
+
+**Mengapa diuji?**
+- Firebase menolak password < 6 karakter, tetapi validasi sisi-klien mencegah permintaan yang tidak perlu
+- Persyaratan panjang melindungi keamanan akun pengguna
+- Boundary testing penting untuk memastikan logika perbandingan benar (`>= 6` bukan `> 6`)
+
+**Test yang dilakukan:**
+- ✅ Password ≥ 6 karakter mengembalikan `null` (valid)
+- ❌ Password < 6 karakter ditolak dengan pesan error
+- ❌ Password kosong ditolak
+- ✅ Password tepat 6 karakter (boundary condition) lolos
+- ❌ Password 5 karakter (just below boundary) ditolak
+
+#### 3. **Validasi Konfirmasi Password** (5 test cases)
+Menguji fungsi `validateConfirmPassword()` yang memastikan konfirmasi password cocok dengan password asli.
+
+**Mengapa diuji?**
+- Kesalahan ketik pada konfirmasi password sangat umum saat registrasi
+- Mendeteksi mismatch mencegah user terkunci akun (password tidak sesuai dengan apa yang user harapkan)
+- Kepekaan terhadap huruf kapital penting untuk keamanan
+
+**Test yang dilakukan:**
+- ✅ Konfirmasi password yang cocok mengembalikan `null` (valid)
+- ❌ Konfirmasi password berbeda dari asli ditolak
+- ❌ Konfirmasi password kosong ditolak
+- ❌ Perbedaan huruf kapital dianggap berbeda (`Pass123` ≠ `pass123`)
+- ❌ Nilai `null` pada konfirmasi ditangani dengan error
+
+#### 4. **Parsing Pesan Error Firebase** (8 test cases)
+Menguji fungsi `parseErrorMessage()` yang mengubah kode error teknis Firebase menjadi pesan ramah untuk pengguna.
+
+**Mengapa diuji?**
+- Firebase mengembalikan kode error teknis dalam bahasa Inggris (contoh: `email-already-in-use`)
+- Parsing yang salah membuat pengguna bingung dan tidak tahu apa yang harus dilakukan
+- Setiap error code Firebase harus dipetakan ke pesan yang sesuai dalam bahasa Indonesia
+
+**Test yang dilakukan:**
+- Email sudah terdaftar → "Email already in use. Please use a different email or login."
+- Password salah → "Wrong password. Please try again."
+- Email tidak ditemukan → "User not found."
+- Password terlalu lemah → "Password is too weak. Minimum 6 characters."
+- Format email salah → "Invalid email format."
+- Tidak ada koneksi internet → "No internet connection."
+- Error tidak dikenal → Fallback message "An error occurred. Please try again." (graceful degradation)
+
+### Menjalankan Test
+
+```bash
+# Jalankan semua test autentikasi
+flutter test lib/test/auth_logic_test.dart
+
+# Jalankan test spesifik (contoh: Email Validation)
+flutter test lib/test/auth_logic_test.dart -k "Email Validation"
+
+# Jalankan dengan verbose output
+flutter test lib/test/auth_logic_test.dart -v
+```
+
+### Struktur File Test
+
+```
+lib/test/
+├── auth_logic_test.dart          # Test logika autentikasi
+└── database_test.dart            # Test database operations (manual)
+
+lib/shared/utils/
+├── validators.dart               # Pure functions: validateEmail, validatePassword, validateConfirmPassword
+└── error_parser.dart             # Pure function: parseErrorMessage
+```
+
+---
+
 ## ⚙️ Cara Menjalankan Project
 
 ### Prerequisites
