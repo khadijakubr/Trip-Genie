@@ -211,7 +211,3 @@ flutter run
 ```
 
 ---
-
-## 💭 Refleksi
-
-Pengerjaan Fase 1 ini memberikan banyak pelajaran baru, terutama dalam hal konfigurasi Firebase yang baru pertama kali saya lakukan. Proses menghubungkan Firebase ke Flutter menggunakan FlutterFire CLI ternyata tidak sesederhana yang dibayangkan hingga memahami alasan mengapa beberapa file konfigurasi aman untuk di-commit dan beberapa tidak. Tantangan terbesar yang dihadapi adalah ketika secara tidak sengaja meng-push API key Firebase ke repository publik, sehingga repository harus dibuat ulang dari awal untuk memastikan keamanan kredensial. Dari kejadian ini, ada pelajaran penting yang dipetik: selalu setup `.gitignore` dengan benar sebelum melakukan commit pertama, dan selalu verifikasi file apa saja yang akan ikut ter-push sebelum menjalankan `git push`. Ke depannya, pemahaman tentang keamanan kredensial ini akan menjadi kebiasaan yang diterapkan di setiap project.
