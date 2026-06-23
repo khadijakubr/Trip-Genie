@@ -14,4 +14,25 @@ class Activity {
     required this.description,
     required this.estimatedCost,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'day_plan_id': dayPlanId,
+      'time': time,
+      'name': name,
+      'description': description,
+      'estimated_cost': estimatedCost,
+    };
+  }
+
+  factory Activity.fromMap(Map<String, dynamic> map) {
+    return Activity(
+      id: map['id'] as int?,
+      dayPlanId: map['day_plan_id'] as int,
+      time: map['time'] as String,
+      name: map['name'] as String,
+      description: map['description'] as String,
+      estimatedCost: map['estimated_cost'] as double,
+    );
+  }
 }

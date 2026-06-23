@@ -14,4 +14,23 @@ class DayPlan {
     required this.theme,
     required this.activities,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'itinerary_id': itineraryId,
+      'day_number': dayNumber,
+      'theme': theme,
+      // activities tidak dimasukkan, disimpan di tabel terpisah
+    };
+  }
+
+  factory DayPlan.fromMap(Map<String, dynamic> map, List<Activity> activities) {
+    return DayPlan(
+      id: map['id'] as int?,
+      itineraryId: map['itinerary_id'] as int,
+      dayNumber: map['day_number'] as int,
+      theme: map['theme'] as String,
+      activities: activities,
+    );
+  }
 }
