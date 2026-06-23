@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../viewmodel/auth_viewmodel.dart';
-import 'package:trip_genie/utils/validators.dart';
+import 'package:trip_genie/shared/utils/validators.dart';
 import '../../../shared/routes/app_routes.dart';
 import '../../../shared/theme/app_theme.dart';
 

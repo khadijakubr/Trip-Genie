@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../model/user.dart';
 import '../repository/auth_repository.dart';
-import 'package:trip_genie/utils/error_parser.dart';
+import 'package:trip_genie/shared/utils/error_parser.dart';
 
 // State untuk AuthViewModel
 
