@@ -10,7 +10,6 @@ class AppConstants {
     'Culinary', 
     'Healing',
     'Cultural',
-    'Luxury',
   ];
   
   // Pilihan tipe perjalanan

@@ -15,21 +15,21 @@ class AppTheme {
 
   // Text Styles
   static TextStyle headingLarge = TextStyle(
-    fontSize: 24,
+    fontSize: 64,
     fontWeight: FontWeight.bold,
     color: textPrimary,
     fontFamily: 'Gloock',
   );
 
   static TextStyle headingMedium = TextStyle(
-    fontSize: 20,
+    fontSize: 32,
     fontWeight: FontWeight.bold,
     color: textPrimary,
     fontFamily: 'Gloock',
   );
 
   static TextStyle headingSmall = TextStyle(
-    fontSize: 16,
+    fontSize: 24,
     fontWeight: FontWeight.w600,
     color: textPrimary,
     fontFamily: 'Gloock',

@@ -8,6 +8,7 @@ import 'package:trip_genie/view/pages/generate_itinerary_page.dart';
 import 'package:trip_genie/view/pages/detail_itinerary_page.dart';
 import 'package:trip_genie/view/pages/history_page.dart';
 import 'package:trip_genie/view/pages/profile_page.dart';
+import 'package:trip_genie/view/widgets/shell_scaffold.dart';
 import 'package:trip_genie/viewmodel/auth_viewmodel.dart';
 
 class AppRoutes {
@@ -24,19 +25,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authViewModelProvider);
 
   return GoRouter(
-    // First page opened
-    initialLocation: AppRoutes.onboarding,
-    
-    // redirect called every time route changes
+    initialLocation: AppRoutes.auth,
     redirect: (context, state) async {
       final hasSeenOnboarding = await AppPreferences.getHasSeenOnboarding();
       final isOnOnboarding = state.matchedLocation == AppRoutes.onboarding;
       final isOnAuth = state.matchedLocation == AppRoutes.auth;
-      
+
       if (!hasSeenOnboarding && !isOnOnboarding) {
         return AppRoutes.onboarding;
       }
-      
+
       final isLoggedIn = authState.user != null;
 
       if (hasSeenOnboarding && !isLoggedIn && !isOnAuth) {
@@ -46,12 +44,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (isLoggedIn && isOnAuth) {
         return AppRoutes.home;
       }
-      
-      return null; // null artinya tidak ada redirect, lanjut ke tujuan semula
+
+      return null;
     },
-    
-    // Daftar semua halaman
     routes: [
+      // ── Top-level routes (outside shell, no bottom nav) ──
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (context, state) => const OnboardingPage(),
@@ -63,34 +60,54 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       GoRoute(
-        path: AppRoutes.home,
-        builder: (context, state) => const HomePage(),
-      ),
-
-      GoRoute(
         path: AppRoutes.generateItinerary,
         builder: (context, state) => const GenerateItineraryPage(),
       ),
 
       GoRoute(
-        // ":id" artinya bagian ini adalah parameter dinamis
-        // contoh: /detail/42 → id = "42"
         path: AppRoutes.detailItinerary,
         builder: (context, state) {
-          // Cara mengambil parameter dari URL
           final id = int.parse(state.pathParameters['id']!);
           return DetailItineraryPage(itineraryId: id);
         },
       ),
 
-      GoRoute(
-        path: AppRoutes.history,
-        builder: (context, state) => const HistoryPage(),
-      ),
-      
-      GoRoute(
-        path: AppRoutes.profile,
-        builder: (context, state) => const ProfilePage(),
+      // ── Shell route with bottom nav ─────────────────────
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return ShellScaffold(navigationShell: navigationShell);
+        },
+        branches: [
+          // Tab 0: Home
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.home,
+                builder: (context, state) => const HomePage(),
+              ),
+            ],
+          ),
+
+          // Tab 1: History
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.history,
+                builder: (context, state) => const HistoryPage(),
+              ),
+            ],
+          ),
+
+          // Tab 2: Profile
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.profile,
+                builder: (context, state) => const ProfilePage(),
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   );
