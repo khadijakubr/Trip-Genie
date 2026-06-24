@@ -1,31 +1,37 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trip_genie/model/itinerary.dart';
+import 'package:trip_genie/repository/history_repository.dart';
+import 'package:trip_genie/viewmodel/auth_viewmodel.dart';
 
-/// State: List of historical itineraries
-/// Methods: fetchHistory(), clearHistory()
+/// State: List of all itineraries belonging to the current user.
 class HistoryViewmodel extends AsyncNotifier<List<Itinerary>> {
   @override
   Future<List<Itinerary>> build() async {
-    // TODO: Implement initial fetch of history
-    return [];
+    final authState = ref.watch(authViewModelProvider);
+    final userId = authState.user?.id;
+    if (userId == null) return [];
+
+    final repository = ref.read(historyRepositoryProvider);
+    return repository.getAllItinerariesByUser(userId);
   }
 
-  /// Fetch user's itinerary history
+  /// Fetch updated history from the database.
   Future<void> fetchHistory() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      // TODO: Implement fetch history logic
-      throw UnimplementedError('fetchHistory() not implemented');
+      final authState = ref.read(authViewModelProvider);
+      final userId = authState.user?.id;
+      if (userId == null) return <Itinerary>[];
+
+      final repository = ref.read(historyRepositoryProvider);
+      return repository.getAllItinerariesByUser(userId);
     });
   }
 
-  /// Clear all history
-  Future<void> clearHistory() async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      // TODO: Implement clear history logic
-      throw UnimplementedError('clearHistory() not implemented');
-    });
+  /// Delete a single itinerary by id, then refresh.
+  Future<void> deleteItinerary(int id) async {
+    await ref.read(historyRepositoryProvider).deleteItinerary(id);
+    await fetchHistory();
   }
 }
 

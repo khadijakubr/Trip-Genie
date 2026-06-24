@@ -1,30 +1,31 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trip_genie/model/itinerary.dart';
+import 'package:trip_genie/repository/home_repository.dart';
+import 'package:trip_genie/viewmodel/auth_viewmodel.dart';
 
-/// State: List of Itineraries (user's itineraries on home)
-/// Methods: fetchItineraries(), deleteItinerary()
+/// State: List of recent itineraries for the home screen.
+/// Empty list means first-time user (State A).
 class HomeViewmodel extends AsyncNotifier<List<Itinerary>> {
   @override
   Future<List<Itinerary>> build() async {
-    // TODO: Implement initial fetch of itineraries
-    return [];
+    final authState = ref.watch(authViewModelProvider);
+    final userId = authState.user?.id;
+    if (userId == null) return [];
+
+    final repository = ref.read(homeRepositoryProvider);
+    return repository.getRecentItineraries(userId, limit: 4);
   }
 
-  /// Fetch all user itineraries
-  Future<void> fetchItineraries() async {
+  /// Refresh the itineraries list from the database.
+  Future<void> refreshItineraries() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      // TODO: Implement fetch itineraries logic
-      throw UnimplementedError('fetchItineraries() not implemented');
-    });
-  }
+      final authState = ref.read(authViewModelProvider);
+      final userId = authState.user?.id;
+      if (userId == null) return <Itinerary>[];
 
-  /// Delete an itinerary by ID
-  Future<void> deleteItinerary(int id) async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() async {
-      // TODO: Implement delete itinerary logic
-      throw UnimplementedError('deleteItinerary() not implemented');
+      final repository = ref.read(homeRepositoryProvider);
+      return repository.getRecentItineraries(userId, limit: 4);
     });
   }
 }
