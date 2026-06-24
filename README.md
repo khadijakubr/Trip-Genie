@@ -38,21 +38,30 @@ File ini masih belum final dan nantinya bisa berubah - ubah sesuai perkembangan 
 
 ### Filosofi Testing
 
-Project ini menerapkan unit testing untuk logika autentikasi menggunakan pola **Arrange-Act-Assert (AAA)**:
-- **Arrange**: Siapkan data input untuk test
-- **Act**: Jalankan fungsi yang diuji
+Project ini menerapkan dua jenis testing:
+
+1. **Unit Testing** — menguji fungsi-fungsi murni (pure functions) seperti validasi form dan parsing error. Test ini cepat, tidak memerlukan widget tree, dan hanya menguji logika bisnis.
+2. **Widget Testing** — menguji widget Flutter secara terisolasi dengan dummy data. Test ini memverifikasi rendering UI, teks yang tampil, dan struktur widget.
+
+Kedua jenis test menggunakan pola **Arrange-Act-Assert (AAA)**:
+- **Arrange**: Siapkan data input / mock data untuk test
+- **Act**: Jalankan fungsi atau render widget yang diuji
 - **Assert**: Verifikasi hasil sesuai ekspektasi
 
-### Fungsi yang Diuji
+---
+
+### A. Unit Test — Logika Autentikasi
+
+#### Fungsi yang Diuji
 
 Dipilih fungsi-fungsi **murni** (pure functions) yang:
 1. Tidak memiliki efek samping atau ketergantungan eksternal (Firebase, database, widget)
 2. Kritis untuk pengalaman pengguna (kesalahan validasi membuat user frustasi)
 3. Mudah diisolasi dan diuji tanpa setup kompleks
 
-### Test Case yang Tersedia
+#### Test Case yang Tersedia
 
-#### 1. **Validasi Email** (5 test cases)
+##### 1. **Validasi Email** (5 test cases)
 Menguji fungsi `validateEmail()` yang memvalidasi format email pengguna.
 
 **Mengapa diuji?**
@@ -67,7 +76,7 @@ Menguji fungsi `validateEmail()` yang memvalidasi format email pengguna.
 - ❌ Email dengan `@` tapi tanpa domain ditolak (edge case)
 - ❌ Email `null` (field belum diisi) ditangani dengan error
 
-#### 2. **Validasi Password** (5 test cases)
+##### 2. **Validasi Password** (5 test cases)
 Menguji fungsi `validatePassword()` yang memastikan password memenuhi persyaratan minimum.
 
 **Mengapa diuji?**
@@ -82,7 +91,7 @@ Menguji fungsi `validatePassword()` yang memastikan password memenuhi persyarata
 - ✅ Password tepat 6 karakter (boundary condition) lolos
 - ❌ Password 5 karakter (just below boundary) ditolak
 
-#### 3. **Validasi Konfirmasi Password** (5 test cases)
+##### 3. **Validasi Konfirmasi Password** (5 test cases)
 Menguji fungsi `validateConfirmPassword()` yang memastikan konfirmasi password cocok dengan password asli.
 
 **Mengapa diuji?**
@@ -97,7 +106,7 @@ Menguji fungsi `validateConfirmPassword()` yang memastikan konfirmasi password c
 - ❌ Perbedaan huruf kapital dianggap berbeda (`Pass123` ≠ `pass123`)
 - ❌ Nilai `null` pada konfirmasi ditangani dengan error
 
-#### 4. **Parsing Pesan Error Firebase** (8 test cases)
+##### 4. **Parsing Pesan Error Firebase** (8 test cases)
 Menguji fungsi `parseErrorMessage()` yang mengubah kode error teknis Firebase menjadi pesan ramah untuk pengguna.
 
 **Mengapa diuji?**
@@ -114,29 +123,135 @@ Menguji fungsi `parseErrorMessage()` yang mengubah kode error teknis Firebase me
 - Tidak ada koneksi internet → "No internet connection."
 - Error tidak dikenal → Fallback message "An error occurred. Please try again." (graceful degradation)
 
-### Menjalankan Test
+---
+
+### B. Widget Test — DayPlanCard
+
+Widget test untuk `DayPlanCard`, yaitu komponen card yang menampilkan itinerary harian (nomor hari, tema, dan daftar aktivitas). Test ini menggunakan **Flutter Test Framework** (`flutter_test`) untuk merender widget secara virtual dan memverifikasi UI yang tampil.
+
+#### Test Case Structure — Arrange-Act-Assert Pattern (30%)
+
+Setiap test case mengikuti pola AAA secara eksplisit:
+
+```dart
+testWidgets('renders all activities with time, name, description, cost',
+    (tester) async {
+  // ── Arrange ──
+  // Data sudah disiapkan di setUp(): dayPlan dengan 2 activities,
+  // currencyFormat dengan locale id_ID
+
+  // ── Act ──
+  await pumpDayPlanCard(tester);  // merender widget
+
+  // ── Assert ──
+  expect(find.text('08.00 - 10.00'), findsOneWidget);
+  expect(find.text('Visit Borobudur'), findsOneWidget);
+  expect(find.text('Rp 50.000'), findsOneWidget);
+  // ... assertions untuk activity ke-2
+});
+```
+
+**Penjelasan:**
+- **Arrange**: Dilakukan di `setUp()` — inisialisasi `DayPlan`, `Activity`, dan `NumberFormat` dengan locale `id_ID`. Ada juga *helper method* `pumpDayPlanCard()` yang membungkus widget dalam `MaterialApp` + `Scaffold` agar tema dan style ter-resolve dengan benar.
+- **Act**: Memanggil `pumpDayPlanCard(tester)` yang menjalankan `tester.pumpWidget(...)` untuk merender `DayPlanCard` ke dalam widget tree.
+- **Assert**: Menggunakan `find.text()` dari `flutter_test` untuk mencari teks yang diharapkan dan `findsOneWidget` / `findsNothing` untuk memverifikasi keberadaan atau ketidakhadiran widget.
+
+##### Test Coverage 
+
+4 test case mencakup skenario berikut:
+
+| Test Case | Skenario | Apa yang Diuji |
+|-----------|----------|----------------|
+| 1 | Header lengkap | Nomor hari (badge `1`), judul `Day 1`, tema `Nature` |
+| 2 | Semua aktivitas tampil | Waktu, nama, deskripsi, biaya untuk 2 aktivitas berbeda |
+| 3 | Format Rupiah | Biaya `150.000` menggunakan separator titik (.) bukan koma (,) — sesuai locale `id_ID` |
+| 4 | Daftar aktivitas kosong | Header tetap tampil, tidak ada aktivitas yang muncul (`findsNothing`) |
+
+**Keputusan desain:**
+- Test **tidak** menguji warna, borderRadius, atau properti dekorasi lainnya karena properti tersebut rentan berubah. Fokus diberikan pada **konten teks** yang merupakan kontrak utama widget.
+- Test **tidak** menguji interaksi (tap) karena `DayPlanCard` tidak memiliki interaksi — ia adalah widget display-only. Interaksi ditangani oleh parent widget (`DetailItineraryPage`).
+- Test **tidak** mengirim callback atau memverifikasi navigasi karena `DayPlanCard` tidak menerima callback — semua data sudah diberikan melalui konstruktor.
+
+##### Code Clarity and Comments
+
+Test code ditulis dengan prinsip **self-documenting code** dan dilengkapi komentar strategis dalam bahasa inggris:
+
+```dart
+// ── Test 1: Header ──
+testWidgets('renders day header with number badge, title, and theme',
+    (tester) async {
+  await pumpDayPlanCard(tester);
+
+  // Day number badge (the "1" inside the blue square)
+  expect(find.text('1'), findsOneWidget);
+  // Day title text
+  expect(find.text('Day 1'), findsOneWidget);
+  // Theme name
+  expect(find.text('Nature'), findsOneWidget);
+});
+```
+
+**Praktik yang diterapkan:**
+- **Helper method** `pumpDayPlanCard()` digunakan untuk menghindari duplikasi kode render. Method ini menerima parameter opsional `customDayPlan` dan `customDayNumber` untuk fleksibilitas per-test-case.
+- **Deskripsi test case** menggunakan format `verb + expected behavior + context` sehingga jelas apa yang diuji tanpa perlu membaca kode.
+- **Komentar** ditempatkan untuk menjelaskan *mengapa* (misalnya: "Indonesian format uses dot, not comma") bukan menjelaskan *apa* yang sudah jelas dari kode.
+- **Grouping** dengan `group('DayPlanCard', ...)` mengorganisir test case dalam satu kategori yang bisa dijalankan secara selektif.
+- **Naming** variabel dan method menggunakan nama deskriptif: `expensiveDayPlan`, `emptyDayPlan`, `pumpDayPlanCard`.
+
+#### Cara Menjalankan
 
 ```bash
-# Jalankan semua test autentikasi
+# Jalankan widget test DayPlanCard
+flutter test lib/test/day_plan_card_test.dart
+
+# Jalankan semua test (unit + widget)
+flutter test lib/test/
+```
+
+#### Hasil Eksekusi
+
+```bash
+00:00 +0: loading /lib/test/day_plan_card_test.dart
+00:01 +1: DayPlanCard renders day header with number badge, title, and theme
+00:01 +2: DayPlanCard renders all activities with time, name, description, cost
+00:01 +3: DayPlanCard cost is formatted in IDR with dot thousands separator
+00:01 +4: DayPlanCard renders card body with no activities list
+00:01 +4: All tests passed!
+```
+
+Semua **4 test case berhasil** (passed) dalam waktu 1 detik tanpa warning atau error.
+
+---
+
+### Menjalankan Semua Test
+
+```bash
+# Widget test DayPlanCard
+flutter test lib/test/day_plan_card_test.dart
+
+# Unit test autentikasi
 flutter test lib/test/auth_logic_test.dart
 
-# Jalankan test spesifik (contoh: Email Validation)
+# Test spesifik (contoh: Email Validation)
 flutter test lib/test/auth_logic_test.dart -k "Email Validation"
 
-# Jalankan dengan verbose output
-flutter test lib/test/auth_logic_test.dart -v
+# Semua test dalam folder lib/test/
+flutter test lib/test/
+
+# Dengan verbose output
+flutter test lib/test/day_plan_card_test.dart -v
 ```
 
 ### Struktur File Test
 
 ```
 lib/test/
-├── auth_logic_test.dart          # Test logika autentikasi
-└── database_test.dart            # Test database operations (manual)
+├── auth_logic_test.dart           # Unit test: validasi auth (19 test cases)
+├── day_plan_card_test.dart        # Widget test: DayPlanCard (4 test cases)
 
 lib/shared/utils/
-├── validators.dart               # Pure functions: validateEmail, validatePassword, validateConfirmPassword
-└── error_parser.dart             # Pure function: parseErrorMessage
+├── validators.dart                # validateEmail, validatePassword, validateConfirmPassword
+└── error_parser.dart              # parseErrorMessage
 ```
 
 ---
