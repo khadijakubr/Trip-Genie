@@ -76,7 +76,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
             },
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Field Email
           TextFormField(
@@ -89,7 +89,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
             validator: validateEmail,
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Field Password
           TextFormField(
@@ -110,7 +110,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
             validator: validatePassword,
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Field Konfirmasi Password
           TextFormField(
@@ -147,18 +147,28 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
               ),
             ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
           // Tombol Register
-          ElevatedButton(
-            onPressed: authState.isLoading ? null : _handleRegister,
-            child: authState.isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Register'),
+          SizedBox(
+            height: 52,
+            child: ElevatedButton(
+              onPressed: authState.isLoading ? null : _handleRegister,
+              style: AppTheme.primaryButtonStyle,
+              child: authState.isLoading
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Register',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+            ),
           ),
         ],
       ),

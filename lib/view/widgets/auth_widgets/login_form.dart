@@ -72,7 +72,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
             validator: validateEmail,
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Field Password
           TextFormField(
@@ -106,19 +106,29 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               ),
             ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
 
           // Tombol Login
-          ElevatedButton(
-            // Disable tombol saat loading agar tidak bisa diklik berkali-kali
-            onPressed: authState.isLoading ? null : _handleLogin,
-            child: authState.isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text('Login'),
+          SizedBox(
+            height: 52,
+            child: ElevatedButton(
+              // Disable tombol saat loading agar tidak bisa diklik berkali-kali
+              onPressed: authState.isLoading ? null : _handleLogin,
+              style: AppTheme.primaryButtonStyle,
+              child: authState.isLoading
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Login',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+            ),
           ),
         ],
       ),
