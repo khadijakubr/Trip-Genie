@@ -1,21 +1,288 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:trip_genie/viewmodel/generate_itinerary_viewmodel.dart';
+import 'package:trip_genie/view/widgets/generate_itinerary_widgets/trip_details_form.dart';
+import 'package:trip_genie/view/widgets/generate_itinerary_widgets/theme_selection.dart';
+import 'package:trip_genie/view/widgets/generate_itinerary_widgets/trip_type_selection.dart';
+import 'package:trip_genie/view/widgets/generate_itinerary_widgets/loading_screen.dart';
 
-class GenerateItineraryPage extends ConsumerWidget {
-  const GenerateItineraryPage({Key? key}) : super(key: key);
+class GenerateItineraryPage extends ConsumerStatefulWidget {
+  const GenerateItineraryPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GenerateItineraryPage> createState() =>
+      _GenerateItineraryPageState();
+}
+
+class _GenerateItineraryPageState
+    extends ConsumerState<GenerateItineraryPage> {
+  final _destinationController = TextEditingController();
+  final _budgetController = TextEditingController();
+  DateTime? _departureDate;
+  DateTime? _returnDate;
+
+  @override
+  void dispose() {
+    _destinationController.dispose();
+    _budgetController.dispose();
+    super.dispose();
+  }
+
+  /// Reset the viewmodel state on page entry if it's stuck at `done` or `loading`
+  /// from a previous generation session.
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final current = ref.read(generateItineraryViewModelProvider);
+      if (current.currentStep == GenerateStep.done ||
+          current.currentStep == GenerateStep.loading) {
+        ref.read(generateItineraryViewModelProvider.notifier).reset();
+      }
+    });
+  }
+
+  String? _validateAllFields() {
+    if (_destinationController.text.trim().isEmpty) {
+      return 'Please enter a destination';
+    }
+    if (_departureDate == null) {
+      return 'Please select a departure date';
+    }
+    if (_returnDate == null) {
+      return 'Please select a return date';
+    }
+    if (_returnDate!.isBefore(_departureDate!)) {
+      return 'Return date must be after departure date';
+    }
+    if (_budgetController.text.trim().isEmpty) {
+      return 'Please enter a budget';
+    }
+    final budgetValue = double.tryParse(_budgetController.text.trim());
+    if (budgetValue == null) {
+      return 'Budget must be a valid number';
+    }
+    final days = _returnDate!.difference(_departureDate!).inDays + 1;
+    final minBudget = days * 250000;
+    if (budgetValue < minBudget) {
+      return 'Minimum budget is Rp ${NumberFormat('#,###', 'id_ID').format(minBudget)} for $days day(s)';
+    }
+    return null;
+  }
+
+  Future<void> _pickDate({required bool isDeparture}) async {
+    final now = DateTime.now();
+    DateTime firstDate;
+    DateTime lastDate = now.add(const Duration(days: 365 * 2));
+
+    if (isDeparture) {
+      firstDate = now;
+      if (_returnDate != null && _returnDate!.isAfter(now)) {
+        lastDate = _returnDate!;
+      }
+    } else {
+      firstDate = _departureDate ?? now;
+    }
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: firstDate.isAfter(now) ? firstDate : now,
+      firstDate: firstDate,
+      lastDate: lastDate,
+    );
+    if (picked != null) {
+      setState(() {
+        if (isDeparture) {
+          _departureDate = picked;
+          if (_returnDate != null && _returnDate!.isBefore(picked)) {
+            _returnDate = null;
+          }
+        } else {
+          _returnDate = picked;
+        }
+      });
+    }
+  }
+
+  void _handleSubmit() {
+    final error = _validateAllFields();
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+      return;
+    }
+
+    final success = ref
+        .read(generateItineraryViewModelProvider.notifier)
+        .submitTripDetails(
+          destination: _destinationController.text,
+          startDate: _departureDate,
+          endDate: _returnDate,
+          budgetText: _budgetController.text,
+        );
+
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please check your inputs')),
+      );
+    }
+  }
+
+  Future<void> _handleGenerate() async {
+    final viewmodel = ref.read(generateItineraryViewModelProvider.notifier);
+    await viewmodel.generateItinerary();
+  }
+
+  void _goBack() {
+    final current = ref.read(generateItineraryViewModelProvider);
+    if (current.currentStep == GenerateStep.tripDetails) {
+      context.go('/home');
+    } else {
+      ref.read(generateItineraryViewModelProvider.notifier).reset();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<GenerateItineraryState>(
+      generateItineraryViewModelProvider,
+      (prev, next) {
+        // ── Show API error messages ──
+        if (next.errorMessage != null && next.currentStep != GenerateStep.loading) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(next.errorMessage!),
+              backgroundColor: Colors.red.shade700,
+              action: SnackBarAction(
+                label: 'OK',
+                textColor: Colors.white,
+                onPressed: () {},
+              ),
+            ),
+          );
+          // Clear the error so it doesn't re-show on rebuilds
+          ref
+              .read(generateItineraryViewModelProvider.notifier)
+              .clearError();
+        }
+
+        // ── Navigate to detail on success ──
+        if (prev?.currentStep != GenerateStep.done &&
+            next.currentStep == GenerateStep.done) {
+          final id = next.savedItineraryId;
+          if (id != null) {
+            context.go('/detail/$id');
+          } else {
+            context.go('/home');
+          }
+        }
+      },
+    );
+
+    final state = ref.watch(generateItineraryViewModelProvider);
+
+    // ── Loading is full-screen overlay ──
+    if (state.currentStep == GenerateStep.loading) {
+      return const Scaffold(body: LoadingScreen());
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Generate Itinerary'),
-      ),
-      body: Center(
-        child: Text(
-          'Generate Itinerary Page',
-          style: Theme.of(context).textTheme.headlineMedium,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF004AAD),
+              Color(0xFFA1D7E8),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Stack(
+            children: [
+              // ── Centered card ──
+              Center(
+                child: SingleChildScrollView(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(32),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 32),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 350),
+                      switchInCurve: Curves.easeInOut,
+                      switchOutCurve: Curves.easeInOut,
+                      child: _buildStep(state),
+                    ),
+                  ),
+                ),
+              ),
+
+              // ── Back button top-left ──
+              Positioned(
+                top: 8,
+                left: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded,
+                      color: Colors.white),
+                  onPressed: _goBack,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildStep(GenerateItineraryState state) {
+    switch (state.currentStep) {
+      case GenerateStep.tripDetails:
+        return TripDetailsForm(
+          key: const ValueKey('step1'),
+          destinationController: _destinationController,
+          budgetController: _budgetController,
+          departureDate: _departureDate,
+          returnDate: _returnDate,
+          onPickDeparture: () => _pickDate(isDeparture: true),
+          onPickReturn: () => _pickDate(isDeparture: false),
+          onSubmit: _handleSubmit,
+        );
+
+      case GenerateStep.themeSelection:
+        return const ThemeSelection(
+          key: ValueKey('step2'),
+        );
+
+      case GenerateStep.tripType:
+        return TripTypeSelection(
+          key: const ValueKey('step3'),
+          onGenerate: _handleGenerate,
+        );
+
+      case GenerateStep.loading:
+        return const SizedBox.shrink();
+
+      case GenerateStep.done:
+        return const SizedBox.shrink();
+    }
   }
 }
