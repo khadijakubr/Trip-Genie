@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../model/trip_request.dart';
 import '../model/gemini_response.dart';
 import '../services/gemini_services.dart';
@@ -53,7 +54,7 @@ class GenerateItineraryState {
     return GenerateItineraryState(
       currentStep: currentStep ?? this.currentStep,
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
       savedItineraryId: savedItineraryId ?? this.savedItineraryId,
       geminiResponse: geminiResponse ?? this.geminiResponse,
       selectedThemes: selectedThemes ?? this.selectedThemes,
@@ -76,6 +77,7 @@ enum GenerateStep {
 
 class GenerateItineraryViewModel
     extends Notifier<GenerateItineraryState> {
+  static const int maxDays = 7;
 
   // ── Computed getters for widgets ──
 
@@ -100,6 +102,37 @@ class GenerateItineraryViewModel
     return const GenerateItineraryState();
   }
 
+  /// Validates trip detail fields and returns a user-facing error message,
+  /// or null if all fields are valid.
+  String? validateTripDetails({
+    required String destination,
+    required DateTime? startDate,
+    required DateTime? endDate,
+    required String budgetText,
+  }) {
+    if (destination.trim().isEmpty) return 'Please enter a destination';
+    if (startDate == null) return 'Please select a departure date';
+    if (endDate == null) return 'Please select a return date';
+    if (endDate.isBefore(startDate)) {
+      return 'Return date must be after departure date';
+    }
+
+    final days = endDate.difference(startDate).inDays + 1;
+    if (days > maxDays) return 'Maximum itinerary is $maxDays days';
+
+    if (budgetText.trim().isEmpty) return 'Please enter a budget';
+    final cleanBudget = budgetText.replaceAll('.', '');
+    final budget = double.tryParse(cleanBudget.trim());
+    if (budget == null || budget <= 0) return 'Budget must be a valid number';
+
+    final minBudget = days * 250000.0;
+    if (budget < minBudget) {
+      return 'Minimum budget is Rp ${NumberFormat('#,###', 'id_ID').format(minBudget)} for $days day(s)';
+    }
+
+    return null;
+  }
+
   // Dipanggil saat user submit form di Step 1
   // Berpindah ke Step 2 (pilih tema)
   bool submitTripDetails({
@@ -113,11 +146,15 @@ class GenerateItineraryViewModel
     if (startDate == null || endDate == null) return false;
     if (endDate.isBefore(startDate)) return false;
 
-    final budget = double.tryParse(budgetText.trim());
+    final days = endDate.difference(startDate).inDays + 1;
+    if (days > maxDays) return false;
+
+    // Strip Indonesian thousands separator (.) before parsing
+    final cleanBudget = budgetText.replaceAll('.', '');
+    final budget = double.tryParse(cleanBudget.trim());
     if (budget == null) return false;
 
     // Minimum budget: Rp 250.000 per hari
-    final days = endDate.difference(startDate).inDays + 1;
     final minBudget = days * 250000.0;
     if (budget < minBudget) return false;
 
@@ -200,6 +237,7 @@ class GenerateItineraryViewModel
     // Simpan accommodation options ke provider sementara
     ref.read(accommodationOptionsProvider.notifier).state =
         geminiResponse.accommodationOptions;
+    ref.read(freshItineraryIdProvider.notifier).state = itineraryId;
 
     // Invalidate home & history providers so they refetch on next visit
     ref.invalidate(homeViewmodelProvider);
