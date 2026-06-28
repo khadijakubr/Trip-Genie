@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:trip_genie/viewmodel/generate_itinerary_viewmodel.dart';
 import 'package:trip_genie/view/widgets/generate_itinerary_widgets/trip_details_form.dart';
 import 'package:trip_genie/view/widgets/generate_itinerary_widgets/theme_selection.dart';
@@ -44,34 +43,6 @@ class _GenerateItineraryPageState
     });
   }
 
-  String? _validateAllFields() {
-    if (_destinationController.text.trim().isEmpty) {
-      return 'Please enter a destination';
-    }
-    if (_departureDate == null) {
-      return 'Please select a departure date';
-    }
-    if (_returnDate == null) {
-      return 'Please select a return date';
-    }
-    if (_returnDate!.isBefore(_departureDate!)) {
-      return 'Return date must be after departure date';
-    }
-    if (_budgetController.text.trim().isEmpty) {
-      return 'Please enter a budget';
-    }
-    final budgetValue = double.tryParse(_budgetController.text.trim());
-    if (budgetValue == null) {
-      return 'Budget must be a valid number';
-    }
-    final days = _returnDate!.difference(_departureDate!).inDays + 1;
-    final minBudget = days * 250000;
-    if (budgetValue < minBudget) {
-      return 'Minimum budget is Rp ${NumberFormat('#,###', 'id_ID').format(minBudget)} for $days day(s)';
-    }
-    return null;
-  }
-
   Future<void> _pickDate({required bool isDeparture}) async {
     final now = DateTime.now();
     DateTime firstDate;
@@ -84,11 +55,34 @@ class _GenerateItineraryPageState
       }
     } else {
       firstDate = _departureDate ?? now;
+      // Limit return date to departure + 6 days (max 7 total)
+      if (_departureDate != null) {
+        final maxReturn =
+            _departureDate!.add(Duration(days: GenerateItineraryViewModel.maxDays - 1));
+        if (maxReturn.isBefore(lastDate)) {
+          lastDate = maxReturn;
+        }
+      }
     }
+
+    // Use the previously selected date as the picker's initial view, or
+    // fall back to now / firstDate if nothing has been picked yet.
+    final DateTime initialDate;
+    if (isDeparture) {
+      initialDate = _departureDate ?? now;
+    } else {
+      initialDate = _returnDate ?? _departureDate ?? now;
+    }
+    // Clamp to the allowed range in case constraints changed
+    final clamped = initialDate.isBefore(firstDate)
+        ? firstDate
+        : initialDate.isAfter(lastDate)
+            ? lastDate
+            : initialDate;
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: firstDate.isAfter(now) ? firstDate : now,
+      initialDate: clamped,
       firstDate: firstDate,
       lastDate: lastDate,
     );
@@ -107,7 +101,15 @@ class _GenerateItineraryPageState
   }
 
   void _handleSubmit() {
-    final error = _validateAllFields();
+    final viewmodel = ref.read(generateItineraryViewModelProvider.notifier);
+
+    // Validate via viewmodel
+    final error = viewmodel.validateTripDetails(
+      destination: _destinationController.text,
+      startDate: _departureDate,
+      endDate: _returnDate,
+      budgetText: _budgetController.text,
+    );
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error)),
@@ -115,14 +117,12 @@ class _GenerateItineraryPageState
       return;
     }
 
-    final success = ref
-        .read(generateItineraryViewModelProvider.notifier)
-        .submitTripDetails(
-          destination: _destinationController.text,
-          startDate: _departureDate,
-          endDate: _returnDate,
-          budgetText: _budgetController.text,
-        );
+    final success = viewmodel.submitTripDetails(
+      destination: _destinationController.text,
+      startDate: _departureDate,
+      endDate: _returnDate,
+      budgetText: _budgetController.text,
+    );
 
     if (!success) {
       ScaffoldMessenger.of(context).showSnackBar(

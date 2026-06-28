@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:trip_genie/model/accommodation_option.dart';
-import 'package:trip_genie/model/itinerary.dart';
 import 'package:trip_genie/shared/theme/app_theme.dart';
-import 'package:trip_genie/repository/detail_itinerary_repository.dart';
-import 'package:trip_genie/shared/providers/accommodation_provider.dart';
+import 'package:trip_genie/viewmodel/detail_itinerary_viewmodel.dart';
 import 'package:trip_genie/view/widgets/detail_itinerary_widgets/accomodation_card_widget.dart';
 import 'package:trip_genie/view/widgets/detail_itinerary_widgets/cost_summary_widget.dart';
 import 'package:trip_genie/view/widgets/detail_itinerary_widgets/day_plan_card_widget.dart';
@@ -28,93 +25,33 @@ class _DetailItineraryPageState extends ConsumerState<DetailItineraryPage> {
   final _dateFormat = DateFormat('dd MMMM yyyy');
   final _currencyFormat = NumberFormat('#,###', 'id_ID');
 
-  Itinerary? _itinerary;
-  bool _isLoading = true;
-  String? _error;
-  int? _selectedAccommodationIndex;
-
   @override
   void initState() {
     super.initState();
-    _loadItinerary();
-  }
-
-  Future<void> _loadItinerary() async {
-    try {
-      final repo = ref.read(detailItineraryRepositoryProvider);
-      final itinerary = await repo.getItineraryById(widget.itineraryId);
-      if (mounted) {
-        setState(() {
-          _itinerary = itinerary;
-          _isLoading = false;
-          _error = itinerary == null ? 'Itinerary tidak ditemukan' : null;
-
-          // Restore selected accommodation index from DB
-          if (itinerary != null && itinerary.accommodation != null) {
-            final options = ref.read(accommodationOptionsProvider);
-            _selectedAccommodationIndex = options.indexWhere(
-              (o) => o.name == itinerary.accommodation,
-            );
-            if (_selectedAccommodationIndex == -1) {
-              _selectedAccommodationIndex = null;
-            }
-          } else {
-            _selectedAccommodationIndex = null;
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _error = e.toString();
-        });
-      }
-    }
-  }
-
-  Future<void> _selectAccommodation(int index) async {
-    final options = ref.read(accommodationOptionsProvider);
-    if (index >= options.length) return;
-
-    final selected = options[index];
-    try {
-      await ref.read(detailItineraryRepositoryProvider).updateAccommodation(
-            itineraryId: widget.itineraryId,
-            accommodation: selected.name,
-            accommodationCost: selected.totalPrice,
-          );
-      if (mounted) {
-        setState(() {
-          _selectedAccommodationIndex = index;
-        });
-        _loadItinerary(); // reload to reflect updated costs
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan: $e')),
-        );
-      }
-    }
+    // Defer provider modifications to after the widget tree is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref
+          .read(detailItineraryViewModelProvider.notifier)
+          .loadItinerary(widget.itineraryId);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final accommodationOptions = ref.watch(accommodationOptionsProvider);
+    final state = ref.watch(detailItineraryViewModelProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      body: _buildBody(accommodationOptions),
+      body: _buildBody(state),
     );
   }
 
-  Widget _buildBody(List<AccommodationOption> accommodationOptions) {
-    if (_isLoading) {
+  Widget _buildBody(DetailItineraryState state) {
+    if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_error != null) {
+    if (state.errorMessage != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -123,7 +60,7 @@ class _DetailItineraryPageState extends ConsumerState<DetailItineraryPage> {
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.red),
               const SizedBox(height: 16),
-              Text(_error!, textAlign: TextAlign.center,
+              Text(state.errorMessage!, textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 16)),
             ],
           ),
@@ -131,10 +68,9 @@ class _DetailItineraryPageState extends ConsumerState<DetailItineraryPage> {
       );
     }
 
-    final itinerary = _itinerary!;
-    final totalDays =
-        itinerary.endDate.difference(itinerary.startDate).inDays + 1;
-
+    final itinerary = state.itinerary!;
+    final totalDays = state.totalDays;
+    final accommodationOptions = state.accommodationOptions;
     final hasAccommodationOptions = accommodationOptions.isNotEmpty;
     final hasSavedAccommodation = itinerary.accommodation != null;
 
@@ -234,12 +170,14 @@ class _DetailItineraryPageState extends ConsumerState<DetailItineraryPage> {
                 if (hasAccommodationOptions)
                   ...List.generate(accommodationOptions.length, (i) {
                     final option = accommodationOptions[i];
-                    final isSelected = _selectedAccommodationIndex == i;
+                    final isSelected = state.selectedAccommodationIndex == i;
                     return AccommodationCard(
                       option: option,
                       isSelected: isSelected,
                       currencyFormat: _currencyFormat,
-                      onTap: () => _selectAccommodation(i),
+                      onTap: () => ref
+                          .read(detailItineraryViewModelProvider.notifier)
+                          .selectAccommodation(i),
                     );
                   }),
                 if (!hasAccommodationOptions && hasSavedAccommodation)
@@ -271,7 +209,9 @@ class _DetailItineraryPageState extends ConsumerState<DetailItineraryPage> {
               CostSummaryCard(
                 itinerary: itinerary,
                 currencyFormat: _currencyFormat,
-                selectedAccommodationIndex: _selectedAccommodationIndex,
+                selectedAccommodationIndex: state.selectedAccommodationIndex,
+                previewAccommodationCost: state.previewAccommodationCost,
+                previewTotalCost: state.effectiveTotalCost,
               ),
               const SizedBox(height: 32),
 
@@ -280,12 +220,36 @@ class _DetailItineraryPageState extends ConsumerState<DetailItineraryPage> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: () => context.go('/history'),
+                  onPressed: state.isLoading
+                      ? null
+                      : () async {
+                          if (state.hasUnsavedAccommodation) {
+                            await ref
+                                .read(
+                                    detailItineraryViewModelProvider.notifier)
+                                .saveAccommodation(widget.itineraryId);
+                          }
+                          if (mounted) {
+                            context.go('/history');
+                          }
+                        },
                   style: AppTheme.primaryButtonStyle,
-                  icon: const Icon(Icons.history_rounded, size: 20),
-                  label: const Text(
-                    'Continue to My Trips',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  icon: state.isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.history_rounded, size: 20),
+                  label: Text(
+                    state.isLoading
+                        ? 'Saving…'
+                        : 'Continue to My Trips',
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),

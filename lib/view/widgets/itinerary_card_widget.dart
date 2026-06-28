@@ -19,10 +19,14 @@ List<Color> _gradientForDestination(String destination) {
 
 /// Reusable itinerary card with gradient background.
 /// Used on the home page and can also be reused on the history page.
+///
+/// When [onDelete] is provided, a trash icon appears at the bottom right
+/// (intended for history page only).
 class ItineraryCard extends StatelessWidget {
   final Itinerary itinerary;
+  final VoidCallback? onDelete;
 
-  const ItineraryCard({super.key, required this.itinerary});
+  const ItineraryCard({super.key, required this.itinerary, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -45,45 +49,72 @@ class ItineraryCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 150),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.end,
+          child: Stack(
             children: [
-              // Destination name
-              Text(
-                itinerary.destination,
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 6),
-              // Date range with calendar icon
-              Row(
+              // ── Card content (unpositioned = fills Stack) ──
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Icon(
-                    Icons.calendar_today_rounded,
-                    size: 14,
-                    color: Colors.white.withValues(alpha: 0.7),
+                  // Destination name
+                  Text(
+                    itinerary.destination,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      dateRange,
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
+                  const SizedBox(height: 6),
+                  // Date range with calendar icon
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        size: 14,
                         color: Colors.white.withValues(alpha: 0.7),
                       ),
-                    ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          dateRange,
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
+
+              // ── Delete icon (bottom-right, only when onDelete is set) ──
+              if (onDelete != null)
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: onDelete,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.delete_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

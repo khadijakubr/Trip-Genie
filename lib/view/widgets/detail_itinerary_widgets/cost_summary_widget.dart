@@ -6,26 +6,36 @@ import 'package:trip_genie/shared/theme/app_theme.dart';
 
 /// Card showing the budget breakdown: accommodation, food, transport,
 /// activities, total, and the user's original input budget.
+///
+/// When [previewAccommodationCost] is provided (user has a local selection
+/// not yet saved), it is used instead of the DB value and a "(preview)" label
+/// is shown on the accommodation row.
 class CostSummaryCard extends StatelessWidget {
   final Itinerary itinerary;
   final NumberFormat currencyFormat;
   final int? selectedAccommodationIndex;
+  final double? previewAccommodationCost;
+  final double? previewTotalCost;
 
   const CostSummaryCard({
     super.key,
     required this.itinerary,
     required this.currencyFormat,
     required this.selectedAccommodationIndex,
+    this.previewAccommodationCost,
+    this.previewTotalCost,
   });
 
   @override
   Widget build(BuildContext context) {
-    final accommodationCost = itinerary.accommodationCost ?? 0.0;
     final foodCost = itinerary.foodCost ?? 0.0;
     final transportCost = itinerary.transportCost ?? 0.0;
     final activityCost = itinerary.activityCost ?? 0.0;
-    final totalCost = itinerary.totalCost ?? 0.0;
+    final accommodationCost =
+        previewAccommodationCost ?? itinerary.accommodationCost ?? 0.0;
+    final totalCost = previewTotalCost ?? itinerary.totalCost ?? 0.0;
     final inputBudget = itinerary.budget;
+    final isPreview = previewAccommodationCost != null;
 
     return Container(
       decoration: BoxDecoration(
@@ -37,7 +47,7 @@ class CostSummaryCard extends StatelessWidget {
       child: Column(
         children: [
           _costRow(
-            'Accommodation',
+            isPreview ? 'Accommodation (preview)' : 'Accommodation',
             accommodationCost,
             iconPath: 'assets/icons/accommodation.svg',
             isSelected: selectedAccommodationIndex != null,
@@ -52,7 +62,8 @@ class CostSummaryCard extends StatelessWidget {
               iconPath: 'assets/icons/activity.svg'),
           const Divider(height: 24),
           // Total row — icon on left, amount on right (icon visible on white bg)
-          _costRow('Total Budget', totalCost,
+          _costRow(isPreview ? 'Total Budget (preview)' : 'Total Budget',
+              totalCost,
               iconPath: 'assets/icons/budget.svg', isTotal: true),
           const SizedBox(height: 8),
           // Original input budget

@@ -1,8 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:trip_genie/shared/theme/app_theme.dart';
+
+/// Formats numeric input with Indonesian thousands-separator dots
+/// (e.g. 1000000 → 1.000.000).
+class MoneyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Remove any non-digit character
+    final digitsOnly = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    if (digitsOnly.isEmpty) return TextEditingValue(text: '');
+
+    // Add dots as thousands separators
+    final buffer = StringBuffer();
+    for (int i = 0; i < digitsOnly.length; i++) {
+      if (i > 0 && (digitsOnly.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(digitsOnly[i]);
+    }
+    final formatted = buffer.toString();
+
+    // Preserve cursor at end
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 class TripDetailsForm extends ConsumerWidget {
   final TextEditingController destinationController;
@@ -26,7 +55,7 @@ class TripDetailsForm extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dateFormat = DateFormat('dd MMMM yyyy');
+    final dateFormat = DateFormat('dd/MM/yy');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
@@ -80,8 +109,8 @@ class TripDetailsForm extends ConsumerWidget {
                           padding: const EdgeInsets.all(12),
                           child: SvgPicture.asset(
                             'assets/icons/calendar.svg',
-                            width: 10,
-                            height: 10,
+                            width: 5,
+                            height: 5,
                             colorFilter: const ColorFilter.mode(
                               AppTheme.primaryColor,
                               BlendMode.srcIn,
@@ -115,8 +144,8 @@ class TripDetailsForm extends ConsumerWidget {
                           padding: const EdgeInsets.all(12),
                           child: SvgPicture.asset(
                             'assets/icons/calendar.svg',
-                            width: 10,
-                            height: 10 ,
+                            width: 5,
+                            height: 5 ,
                             colorFilter: const ColorFilter.mode(
                               AppTheme.primaryColor,
                               BlendMode.srcIn,
@@ -146,6 +175,7 @@ class TripDetailsForm extends ConsumerWidget {
           TextFormField(
             controller: budgetController,
             keyboardType: TextInputType.number,
+            inputFormatters: [MoneyInputFormatter()],
             decoration: InputDecoration(
               labelText: 'Budget',
               prefixIcon: Padding(

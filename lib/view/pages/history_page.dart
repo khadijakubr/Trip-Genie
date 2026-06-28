@@ -1,8 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:trip_genie/model/itinerary.dart';
 import 'package:trip_genie/shared/theme/app_theme.dart';
 import 'package:trip_genie/viewmodel/history_viewmodel.dart';
 import 'package:trip_genie/view/widgets/itinerary_card_widget.dart';
+
+/// Shows a confirmation dialog and deletes the itinerary if confirmed.
+Future<void> _confirmDelete(
+  BuildContext context,
+  WidgetRef ref,
+  Itinerary itinerary,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Delete Trip'),
+      content: Text(
+        'Are you sure you want to delete "${itinerary.destination}"?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          style: TextButton.styleFrom(foregroundColor: Colors.red),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
+
+  if (confirmed == true) {
+    await ref.read(historyViewmodelProvider.notifier).deleteItinerary(
+          itinerary.id!,
+        );
+  }
+}
 
 class HistoryPage extends ConsumerWidget {
   const HistoryPage({super.key});
@@ -109,7 +144,10 @@ class HistoryPage extends ConsumerWidget {
               final itinerary = itineraries[index];
               return Padding(
                 padding: const EdgeInsets.only(bottom: 14),
-                child: ItineraryCard(itinerary: itinerary),
+                child: ItineraryCard(
+                  itinerary: itinerary,
+                  onDelete: () => _confirmDelete(context, ref, itinerary),
+                ),
               );
             },
           );

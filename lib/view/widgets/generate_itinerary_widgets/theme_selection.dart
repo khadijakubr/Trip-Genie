@@ -30,7 +30,6 @@ class _ThemeSelectionState extends ConsumerState<ThemeSelection> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(generateItineraryViewModelProvider);
     final viewmodel = ref.read(generateItineraryViewModelProvider.notifier);
     final themes = viewmodel.themeOptions;
     final totalDays = viewmodel.totalDays;
@@ -103,25 +102,20 @@ class _ThemeSelectionState extends ConsumerState<ThemeSelection> {
           physics: const NeverScrollableScrollPhysics(),
           children: themes.map((theme) {
             final isSelected = _selectedTheme == theme;
-            final alreadyChosen = state.selectedThemes.contains(theme);
 
             return GestureDetector(
-              onTap: alreadyChosen ? null : () => _selectTheme(theme),
+              onTap: () => _selectTheme(theme),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isSelected
                       ? AppTheme.primaryColor
-                      : alreadyChosen
-                          ? AppTheme.primaryColor.withValues(alpha: 0.1)
-                          : AppTheme.backgroundColor,
+                      : AppTheme.backgroundColor,
                   border: Border.all(
                     color: isSelected
                         ? AppTheme.primaryColor
-                        : alreadyChosen
-                            ? AppTheme.primaryColor.withValues(alpha: 0.3)
-                            : AppTheme.secondaryColor,
+                        : AppTheme.secondaryColor,
                     width: isSelected ? 3 : 2,
                   ),
                   boxShadow: isSelected
@@ -141,16 +135,14 @@ class _ThemeSelectionState extends ConsumerState<ThemeSelection> {
                     _themeIcon(theme, isSelected),
                     const SizedBox(height: 8),
                     Text(
-                      alreadyChosen ? 'Chosen' : theme,
+                      theme,
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: isSelected
                             ? Colors.white
-                            : alreadyChosen
-                                ? AppTheme.primaryColor
-                                : AppTheme.textPrimary,
+                            : AppTheme.textPrimary,
                       ),
                     ),
                   ],
