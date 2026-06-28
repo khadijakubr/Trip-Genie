@@ -14,8 +14,13 @@ import '../../model/accommodation_option.dart';
 // StateProvider dipilih karena:
 // - Datanya sederhana (hanya List)
 // - Perlu bisa diupdate dari luar (dari GenerateItineraryViewModel)
-// - Tidak butuh logic kompleks seperti AsyncNotifier
+// - Tidak butuh logic complex seperti AsyncNotifier
 final accommodationOptionsProvider =
     StateProvider<List<AccommodationOption>>((ref) => []);
 //                                           
 //                          nilai awal adalah list kosong
+
+/// Tracks which itinerary ID the current [accommodationOptionsProvider] data
+/// belongs to. The detail page uses this to clear stale options when viewing
+/// a different itinerary (e.g. from history).
+final freshItineraryIdProvider = StateProvider<int?>((ref) => null);
