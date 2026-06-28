@@ -1,4 +1,4 @@
-import 'itinerary.dart';
+//import 'itinerary.dart';
 import 'accommodation_option.dart';
 
 // Model untuk menampung seluruh response dari Gemini
