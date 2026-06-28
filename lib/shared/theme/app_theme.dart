@@ -63,15 +63,30 @@ class AppTheme {
     fontFamily: 'Inter',
   );
 
-  // Card Decoration
+  // Card Decoration (dark card for list items)
   static BoxDecoration cardDecoration = BoxDecoration(
     color: surfaceColor,
     borderRadius: BorderRadius.circular(12),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withOpacity(0.06),
+        color: Colors.black.withValues(alpha: 0.06),
         blurRadius: 8,
         offset: const Offset(0, 2),
+      ),
+    ],
+  );
+
+  /// Elevated white card used as a form container (e.g. profile page,
+  /// generate itinerary page). White background, 32px rounded corners,
+  /// and a soft shadow.
+  static BoxDecoration formCardDecoration = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(32),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.15),
+        blurRadius: 30,
+        offset: const Offset(0, 10),
       ),
     ],
   );
@@ -95,7 +110,7 @@ class AppTheme {
     shape: BoxShape.circle,
     boxShadow: [
       BoxShadow(
-        color: primaryColor.withOpacity(0.4),
+        color: primaryColor.withValues(alpha: 0.4),
         blurRadius: 16,
         offset: const Offset(0, 6),
       ),

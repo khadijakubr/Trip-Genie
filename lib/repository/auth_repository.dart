@@ -83,16 +83,47 @@ class AuthRepository {
     );
   }
 
+  /// Updates the display name of the currently logged-in user.
+  Future<void> updateDisplayName(String name) async {
+    await _auth.currentUser!.updateDisplayName(name);
+    await _auth.currentUser!.reload();
+  }
+
+  /// Re-authenticates the user with their current email + password.
+  /// Required by Firebase before [updatePassword] if the last login
+  /// was too long ago.
+  Future<void> reauthenticate(String password) async {
+    final user = _auth.currentUser!;
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: password,
+    );
+    await user.reauthenticateWithCredential(credential);
+  }
+
+  /// Updates the password for the currently logged-in user.
+  /// Call [reauthenticate] first if needed.
+  Future<void> updatePassword(String newPassword) async {
+    await _auth.currentUser!.updatePassword(newPassword);
+  }
+
+  /// Reloads the current user and returns a fresh [UserModel].
+  Future<UserModel> refreshCurrentUser() async {
+    await _auth.currentUser!.reload();
+    final user = _auth.currentUser!;
+    return UserModel(
+      id: user.uid,
+      name: user.displayName ?? 'Traveler',
+      email: user.email ?? '',
+    );
+  }
+
   // LOGOUT
   Future<void> logout() async {
-    // Sign out dari Firebase
     await _auth.signOut();
-    
-    // Hapus status login dari SharedPreferences
     await AppPreferences.clearAll();
   }
 
-  // CEK APAKAH USER SEDANG LOGIN
   bool get isLoggedIn => _auth.currentUser != null;
 }
 

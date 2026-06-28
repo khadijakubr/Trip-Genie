@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:trip_genie/shared/theme/app_theme.dart';
 import 'package:trip_genie/viewmodel/generate_itinerary_viewmodel.dart';
 import 'package:trip_genie/view/widgets/generate_itinerary_widgets/trip_details_form.dart';
 import 'package:trip_genie/view/widgets/generate_itinerary_widgets/theme_selection.dart';
@@ -198,8 +199,8 @@ class _GenerateItineraryPageState
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF004AAD),
-              Color(0xFFA1D7E8),
+              AppTheme.primaryColor,
+              AppTheme.secondaryColor,
             ],
           ),
         ),
@@ -213,17 +214,7 @@ class _GenerateItineraryPageState
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
                   child: Container(
                     constraints: const BoxConstraints(maxWidth: 420),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(32),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          blurRadius: 30,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
+                    decoration: AppTheme.formCardDecoration,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 24, vertical: 32),
                     child: AnimatedSwitcher(
